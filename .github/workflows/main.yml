@@ -1,0 +1,32 @@
+name: Build yoRadio ESP32
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Arduino CLI & ESP32 Core 2.0.17
+        run: |
+          curl -fsSL https://githubusercontent.com | sh
+          sudo mv bin/arduino-cli /usr/local/bin/
+          arduino-cli config init
+          arduino-cli config add board_manager.additional_urls https://githubusercontent.com
+          arduino-cli core update-index
+          arduino-cli core install esp32:esp32@2.0.17
+
+      - name: Compile yoRadio
+        run: |
+          mkdir -p build_out
+          arduino-cli compile --fqbn esp32:esp32:esp32 --build-property build.partitions=min_spiffs --build-property upload.maximum_size=1966080 --output-dir build_out yoRadio
+
+      - name: Upload Firmware Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: yoRadio-firmware
+          path: build_out/*.bin
+          
