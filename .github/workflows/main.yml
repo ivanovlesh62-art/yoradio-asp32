@@ -10,10 +10,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install Arduino CLI & ESP32 Core 2.0.17
+      - name: Install Arduino CLI
+        uses: arduino/setup-arduino-cli@v2
+
+      - name: Install ESP32 Core 2.0.17
         run: |
-          curl -fsSL https://githubusercontent.com | sh
-          sudo mv bin/arduino-cli /usr/local/bin/
           arduino-cli config init
           arduino-cli config add board_manager.additional_urls https://githubusercontent.com
           arduino-cli core update-index
@@ -29,4 +30,3 @@ jobs:
         with:
           name: yoRadio-firmware
           path: build_out/*.bin
-          
