@@ -15,8 +15,9 @@ jobs:
 
       - name: Install ESP32 Core 2.0.17
         run: |
+          URL="https://raw.""://githubusercontent.com"
           arduino-cli config init
-          arduino-cli config add board_manager.additional_urls https://githubusercontent.com
+          arduino-cli config add board_manager.additional_urls "$URL"
           arduino-cli core update-index
           arduino-cli core install esp32:esp32@2.0.17
 
