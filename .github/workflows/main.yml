@@ -13,13 +13,14 @@ jobs:
       - name: Install Arduino CLI
         uses: arduino/setup-arduino-cli@v2
 
-      - name: Install ESP32 Core 2.0.17
+      - name: Install ESP32 Core & Libraries
         run: |
           URL=$(echo "aHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL2VzcHJlc3NpZi9hcmR1aW5vLWVzcDMyL2doLXBhZ2VzL3BhY2thZ2VfZXNwMzJfaW5kZXguanNvbg==" | base64 -d)
           arduino-cli config init
           arduino-cli config add board_manager.additional_urls "$URL"
           arduino-cli core update-index
           arduino-cli core install esp32:esp32@2.0.17
+          arduino-cli lib install "OneButton" "Adafruit GFX Library" "IRremoteESP8266" "RTClib" "XPT2046_Touchscreen"
 
       - name: Compile yoRadio
         run: |
@@ -31,3 +32,4 @@ jobs:
         with:
           name: yoRadio-firmware
           path: build_out/*.bin
+          
