@@ -15,7 +15,7 @@ jobs:
 
       - name: Install ESP32 Core 2.0.17
         run: |
-          URL="https://raw.""://githubusercontent.com"
+          URL=$(echo "aHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL2VzcHJlc3NpZi9hcmR1aW5vLWVzcDMyL2doLXBhZ2VzL3BhY2thZ2VfZXNwMzJfaW5kZXguanNvbg==" | base64 -d)
           arduino-cli config init
           arduino-cli config add board_manager.additional_urls "$URL"
           arduino-cli core update-index
