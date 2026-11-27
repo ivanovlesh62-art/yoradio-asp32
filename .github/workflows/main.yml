@@ -25,18 +25,11 @@ jobs:
         uses: arduino/setup-arduino-cli@v2
 
       - name: Configure and Install ESP32 Core 2.0.17
-        env:
-          ARDUINO_BOARD_MANAGER_ADDITIONAL_URLS: ""
         run: |
           rm -rf ~/.arduino15
-          PART1="https://githubusercontent.com"
-          PART2="espressif/arduino-esp32/gh-pages/package_esp32_index.json"
-          ESP_URL="${PART1}${PART2}"
-          echo "Using URL: $ESP_URL"
           arduino-cli config init --overwrite
-          arduino-cli core update-index --additional-urls "$ESP_URL"
-          arduino-cli core install esp32:esp32@2.0.17 --additional-urls "$ESP_URL"
-
+          arduino-cli core update-index --additional-urls https://githubusercontent.com
+          arduino-cli core install esp32:esp32@2.0.17 --additional-urls https://githubusercontent.com
 
       - name: Install Required Libraries
         run: |
@@ -87,4 +80,3 @@ jobs:
           path: |
             yoRadio_merged.bin
             ./build_out/*.ino.bin
-            
