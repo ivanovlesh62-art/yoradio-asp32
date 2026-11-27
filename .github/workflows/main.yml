@@ -1,35 +1,83 @@
 name: Build yoRadio ESP32
 
 on:
+  push:
+    branches: [ main, master ]
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Setup Python & esptool
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install esptool and pyserial
+        run: pip install esptool pyserial
+
       - name: Install Arduino CLI
         uses: arduino/setup-arduino-cli@v2
 
-      - name: Install ESP32 Core & Libraries
+      - name: Configure and Install ESP32 Core 2.0.17
         run: |
-          URL=$(echo "aHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL2VzcHJlc3NpZi9hcmR1aW5vLWVzcDMyL2doLXBhZ2VzL3BhY2thZ2VfZXNwMzJfaW5kZXguanNvbg==" | base64 -d)
           arduino-cli config init
-          arduino-cli config add board_manager.additional_urls "$URL"
+          arduino-cli config set board_manager.additional_urls https://githubusercontent.com
           arduino-cli core update-index
           arduino-cli core install esp32:esp32@2.0.17
-          arduino-cli lib install "OneButton" "Adafruit GFX Library" "IRremoteESP8266" "RTClib" "XPT2046_Touchscreen"
 
-      - name: Compile yoRadio
+      - name: Install Required Libraries
         run: |
-          mkdir -p build_out
-          arduino-cli compile --fqbn esp32:esp32:esp32 --build-property build.partitions=min_spiffs --build-property upload.maximum_size=1966080 --output-dir build_out yoRadio
+          arduino-cli lib update-index
+          arduino-cli lib install "Adafruit GFX Library"
+          arduino-cli lib install "Adafruit BusIO"
+          arduino-cli lib install "AsyncTCP"
+          arduino-cli lib install "ESP Async WebServer"
+          arduino-cli lib install "ArduinoJson"
+          arduino-cli lib install "OneWire"
+          arduino-cli lib install "DallasTemperature"
+          arduino-cli lib install "GyverButton"
+          arduino-cli lib install "GyverEncoder"
 
-      - name: Upload Firmware Artifact
+      - name: Copy custom font (if exists)
+        run: |
+          if [ -f "yoRadio/fonts/glcdfont.c" ]; then
+            cp -f yoRadio/fonts/glcdfont.c ~/Arduino/libraries/Adafruit_GFX_Library/glcdfont.c
+          elif [ -f "fonts/glcdfont.c" ]; then
+            cp -f fonts/glcdfont.c ~/Arduino/libraries/Adafruit_GFX_Library/glcdfont.c
+          fi
+
+      - name: Compile yoRadio Sketch
+        run: |
+          SKETCH_DIR="yoRadio"
+          [ ! -d "$SKETCH_DIR" ] && SKETCH_DIR="."
+          arduino-cli compile \
+            --fqbn esp32:esp32:esp32:PartitionScheme=min_spiffs \
+            --build-path ./build_out \
+            "$SKETCH_DIR"
+
+      - name: Merge Binaries into Single File (0x0)
+        run: |
+          python -m esptool --chip esp32 merge_bin \
+            -o yoRadio_merged.bin \
+            --flash_mode dio \
+            --flash_freq 40m \
+            --flash_size 4MB \
+            0x1000 ./build_out/yoRadio.ino.bootloader.bin \
+            0x8000 ./build_out/yoRadio.ino.partitions.bin \
+            0xe000 ~/.arduino15/packages/esp32/hardware/esp32/2.0.17/tools/partitions/boot_app0.bin \
+            0x10000 ./build_out/yoRadio.ino.bin
+
+      - name: Upload Firmware Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: yoRadio-firmware
-          path: build_out/*.bin
-          
+          name: yoRadio-ESP32-Firmware
+          path: |
+            yoRadio_merged.bin
+            ./build_out/yoRadio.ino.bin
+            
