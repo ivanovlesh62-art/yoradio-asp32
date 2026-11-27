@@ -24,12 +24,13 @@ jobs:
       - name: Install Arduino CLI
         uses: arduino/setup-arduino-cli@v2
 
-      - name: Configure and Install ESP32 Core 2.0.17
+            - name: Configure and Install ESP32 Core 2.0.17
         run: |
-          arduino-cli config init
-          arduino-cli config set board_manager.additional_urls https://githubusercontent.com
-          arduino-cli core update-index
-          arduino-cli core install esp32:esp32@2.0.17
+          rm -rf ~/.arduino15
+          arduino-cli config init --overwrite
+          arduino-cli core update-index --additional-urls https://githubusercontent.com
+          arduino-cli core install esp32:esp32@2.0.17 --additional-urls https://githubusercontent.com
+
 
       - name: Install Required Libraries
         run: |
