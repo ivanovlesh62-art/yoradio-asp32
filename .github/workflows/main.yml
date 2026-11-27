@@ -25,11 +25,19 @@ jobs:
         uses: arduino/setup-arduino-cli@v2
 
       - name: Configure and Install ESP32 Core 2.0.17
+        env:
+          ARDUINO_BOARD_MANAGER_ADDITIONAL_URLS: ""
         run: |
           rm -rf ~/.arduino15
+          PROTO="https"
+          HOST="raw.githubusercontent.com"
+          REPO="espressif/arduino-esp32/gh-pages/package_esp32_index.json"
+          ESP_URL="${PROTO}://${HOST}/${REPO}"
+          echo "Using URL: $ESP_URL"
           arduino-cli config init --overwrite
-          arduino-cli core update-index --additional-urls https://githubusercontent.com
-          arduino-cli core install esp32:esp32@2.0.17 --additional-urls https://githubusercontent.com
+          arduino-cli core update-index --additional-urls "$ESP_URL"
+          arduino-cli core install esp32:esp32@2.0.17 --additional-urls "$ESP_URL"
+
 
       - name: Install Required Libraries
         run: |
