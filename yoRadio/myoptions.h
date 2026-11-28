@@ -233,6 +233,40 @@ jobs:
           void LiquidCrystal_I2C::blink() {
             _displaycontrol |= LCD_BLINKON;
             command(LCD_DISPLAYCONTROL | _displaycontrol);
+
+            - name: Copy custom font (if exists)
+run: |
+if [ -f "yoRadio/fonts/glcdfont.c" ]; then
+cp -f yoRadio/fonts/glcdfont.c ~/Arduino/libraries/Adafruit_GFX_Library/glcdfont.c
+elif [ -f "fonts/glcdfont.c" ]; then
+cp -f fonts/glcdfont.c ~/Arduino/libraries/Adafruit_GFX_Library/glcdfont.c
+fi
+- name: Compile yoRadio Sketch
+run: |
+SKETCH_DIR="yoRadio"
+[ ! -d "$SKETCH_DIR" ] && SKETCH_DIR="."
+arduino-cli compile 
+--fqbn esp32:esp32:esp32:PartitionScheme=min_spiffs 
+--build-path ./build_out 
+"$SKETCH_DIR"
+- name: Merge Binaries into Single File (0x0)
+run: |
+python -m esptool --chip esp32 merge_bin 
+-o yoRadio_merged.bin 
+--flash_mode dio 
+--flash_freq 40m 
+--flash_size 4MB 
+0x1000 ./build_out/.ino.bootloader.bin 
+0x8000 ./build_out/.ino.partitions.bin 
+0xe000 ~/.arduino15/packages/esp32/hardware/esp32/2.0.17/tools/partitions/boot_app0.bin 
+0x10000 ./build_out/*.ino.bin
+- name: Upload Firmware Artifacts
+uses: actions/upload-artifact@v4
+with:
+name: yoRadio-ESP32-Firmware
+path: |
+yoRadio_merged.bin
+./build_out/*.ino.bin
           }
 
           void LiquidCrystal_I2C::scrollDisplayLeft(void) {
