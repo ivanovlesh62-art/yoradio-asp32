@@ -2,7 +2,7 @@
 #define myoptions_h
 
 /* --- Дисплей 20x2 (используем профиль 20 символов в ширину) --- */
-#define DSP_MODEL DSP_LCD2004
+#define DSP_MODEL DSP_2004
 #define LCD_I2C_ADDR 0x27
 #define LCD_I2C_SDA  21
 #define LCD_I2C_SCL  22
