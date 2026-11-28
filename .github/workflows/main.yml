@@ -45,7 +45,6 @@ jobs:
           arduino-cli lib install "Adafruit GFX Library"
           arduino-cli lib install "Adafruit BusIO"
           arduino-cli lib install "LiquidCrystal"
-          arduino-cli lib install "LiquidCrystal I2C"
           arduino-cli lib install "AsyncTCP"
           arduino-cli lib install "ESP Async WebServer"
           arduino-cli lib install "ArduinoJson"
@@ -53,6 +52,9 @@ jobs:
           arduino-cli lib install "DallasTemperature"
           arduino-cli lib install "GyverButton"
           arduino-cli lib install "GyverEncoder"
+          mkdir -p ~/Arduino/libraries
+          git clone https://github.com ~/Arduino/libraries/LiquidCrystal_I2C || git clone https://github.com ~/Arduino/libraries/LiquidCrystal_I2C
+          yverEncoder"
 
       - name: Copy custom font (if exists)
         run: |
