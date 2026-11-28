@@ -309,8 +309,10 @@ jobs:
           [ ! -d "$SKETCH_DIR" ] && SKETCH_DIR="."
           arduino-cli compile \
             --fqbn esp32:esp32:esp32:PartitionScheme=min_spiffs \
+            --library ~/Arduino/libraries/LiquidCrystal_I2C \
             --build-path ./build_out \
             "$SKETCH_DIR"
+
 
       - name: Merge Binaries into Single File (0x0)
         run: |
