@@ -1,29 +1,302 @@
-#ifndef myoptions_h
-#define myoptions_h
+name: Build yoRadio ESP32
 
-/* --- Дисплей 20x2 с I2C-адаптером PCF8574T --- */
-#define DSP_MODEL DSP_2002I2C
-#define LCD_I2C_ADDR 0x27
-#define I2C_SDA 21
-#define I2C_SCL 22
-// Если экран поддерживает кириллицу на уровне контроллера, можно раскомментировать:
-// #define LCD_RUS
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
 
-/* --- Аудио ЦАП I2S UDA1334A (стандартные пины yoRadio) --- */
-#define I2S_DOUT 27  // DIN
-#define I2S_BCLK 26  // BCLK
-#define I2S_LRC  25  // WSEL
-#define VS1053_CS 255
+jobs:
+  build:
+    runs-on: ubuntu-latest
 
-/* --- Энкодер EC11 --- */
-#define ENC_BTNR 32
-#define ENC_BTNL 33
-#define ENC_BTNB 14
-#define ENC_INTERNALPULLUP true
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-/* --- Две дополнительные кнопки --- */
-#define BTN_LEFT  12
-#define BTN_RIGHT 13
-#define BTN_INTERNALPULLUP true
+      - name: Setup Python & esptool
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
 
-#endif
+      - name: Install esptool and pyserial
+        run: pip install esptool pyserial
+
+      - name: Install Arduino CLI
+        uses: arduino/setup-arduino-cli@v2
+
+      - name: Configure and Install ESP32 Core 2.0.17
+        env:
+          ARDUINO_BOARD_MANAGER_ADDITIONAL_URLS: ""
+        run: |
+          rm -rf ~/.arduino15
+          PROTO="https"
+          HOST="raw.githubusercontent.com"
+          REPO="espressif/arduino-esp32/gh-pages/package_esp32_index.json"
+          ESP_URL="${PROTO}://${HOST}/${REPO}"
+          echo "Using URL: $ESP_URL"
+          arduino-cli config init --overwrite
+          arduino-cli core update-index --additional-urls "$ESP_URL"
+          arduino-cli core install esp32:esp32@2.0.17 --additional-urls "$ESP_URL"
+
+      - name: Install Required Libraries
+        run: |
+          rm -f yoRadio/LiquidCrystal_I2C.cpp
+          arduino-cli lib update-index
+          arduino-cli lib install "Adafruit GFX Library"
+          arduino-cli lib install "Adafruit BusIO"
+          arduino-cli lib install "LiquidCrystal"
+          arduino-cli lib install "AsyncTCP"
+          arduino-cli lib install "ESP Async WebServer"
+          arduino-cli lib install "ArduinoJson"
+          arduino-cli lib install "OneWire"
+          arduino-cli lib install "DallasTemperature"
+          arduino-cli lib install "GyverButton"
+          arduino-cli lib install "GyverEncoder"
+          mkdir -p ~/Arduino/libraries/LiquidCrystal_I2C
+          cat << 'EOF' > ~/Arduino/libraries/LiquidCrystal_I2C/LiquidCrystal_I2C.h
+          #ifndef LiquidCrystal_I2C_h
+          #define LiquidCrystal_I2C_h
+
+          #include <inttypes.h>
+          #include "Print.h"
+          #include <Wire.h>
+
+          #define LCD_CLEARDISPLAY 0x01
+          #define LCD_RETURNHOME 0x02
+          #define LCD_ENTRYMODESET 0x04
+          #define LCD_DISPLAYCONTROL 0x08
+          #define LCD_CURSORSHIFT 0x10
+          #define LCD_FUNCTIONSET 0x20
+          #define LCD_SETCGRAMADDR 0x40
+          #define LCD_SETDDRAMADDR 0x80
+
+          #define LCD_ENTRYRIGHT 0x00
+          #define LCD_ENTRYLEFT 0x02
+          #define LCD_ENTRYSHIFTINCREMENT 0x01
+          #define LCD_ENTRYSHIFTDECREMENT 0x00
+
+          #define LCD_DISPLAYON 0x04
+          #define LCD_DISPLAYOFF 0x00
+          #define LCD_CURSORON 0x02
+          #define LCD_CURSOROFF 0x00
+          #define LCD_BLINKON 0x01
+          #define LCD_BLINKOFF 0x00
+
+          #define LCD_DISPLAYMOVE 0x08
+          #define LCD_CURSORMOVE 0x00
+          #define LCD_MOVERIGHT 0x04
+          #define LCD_MOVELEFT 0x00
+
+          #define LCD_8BITMODE 0x10
+          #define LCD_4BITMODE 0x00
+          #define LCD_2LINE 0x08
+          #define LCD_1LINE 0x00
+          #define LCD_5x10DOTS 0x04
+          #define LCD_5x8DOTS 0x00
+
+          #define LCD_BACKLIGHT 0x08
+          #define LCD_NOBACKLIGHT 0x00
+
+          #define En B00000100
+          #define Rw B00000010
+          #define Rs B00000001
+
+          class LiquidCrystal_I2C : public Print {
+          public:
+            LiquidCrystal_I2C(uint8_t lcd_addr, uint8_t lcd_cols, uint8_t lcd_rows, uint8_t sda = 21, uint8_t scl = 22);
+            void begin(uint8_t cols, uint8_t rows, uint8_t charsize = LCD_5x8DOTS);
+            void clear();
+            void home();
+            void noDisplay();
+            void display();
+            void noBlink();
+            void blink();
+            void noCursor();
+            void cursor();
+            void scrollDisplayLeft();
+            void scrollDisplayRight();
+            void leftToRight();
+            void rightToLeft();
+            void noBacklight();
+            void backlight();
+            void autoscroll();
+            void noAutoscroll();
+            void createChar(uint8_t, uint8_t[]);
+            void setCursor(uint8_t, uint8_t);
+            virtual size_t write(uint8_t);
+            void command(uint8_t);
+            void init();
+
+          private:
+            void send(uint8_t, uint8_t);
+            void write4bits(uint8_t);
+            void expanderWrite(uint8_t);
+            void pulseEnable(uint8_t);
+            uint8_t _addr;
+            uint8_t _displayfunction;
+            uint8_t _displaycontrol;
+            uint8_t _displaymode;
+            uint8_t _cols;
+            uint8_t _rows;
+            uint8_t _sda;
+            uint8_t _scl;
+            uint8_t _backlightval;
+          };
+
+          #endif
+          EOF
+          cat << 'EOF' > ~/Arduino/libraries/LiquidCrystal_I2C/LiquidCrystal_I2C.cpp
+          #include "LiquidCrystal_I2C.h"
+          #include <inttypes.h>
+          #include <Arduino.h>
+          #include <Wire.h>
+
+          LiquidCrystal_I2C::LiquidCrystal_I2C(uint8_t lcd_addr, uint8_t lcd_cols, uint8_t lcd_rows, uint8_t sda, uint8_t scl) {
+            _addr = lcd_addr;
+            _cols = lcd_cols;
+            _rows = lcd_rows;
+            _sda = sda;
+            _scl = scl;
+            _backlightval = LCD_BACKLIGHT;
+          }
+
+          void LiquidCrystal_I2C::init() {
+            Wire.begin(_sda, _scl);
+            _displayfunction = LCD_4BITMODE | LCD_1LINE | LCD_5x8DOTS;
+            if (_rows > 1) {
+              _displayfunction |= LCD_2LINE;
+            }
+            delay(50);
+            expanderWrite(_backlightval);
+            delay(1000);
+            write4bits(0x03 << 4);
+            delayMicroseconds(4500);
+            write4bits(0x03 << 4);
+            delayMicroseconds(4500);
+            write4bits(0x03 << 4);
+            delayMicroseconds(150);
+            write4bits(0x02 << 4);
+            command(LCD_FUNCTIONSET | _displayfunction);
+            _displaycontrol = LCD_DISPLAYON | LCD_CURSOROFF | LCD_BLINKOFF;
+            display();
+            clear();
+            _displaymode = LCD_ENTRYLEFT | LCD_ENTRYSHIFTDECREMENT;
+            command(LCD_ENTRYMODESET | _displaymode);
+            home();
+          }
+
+          void LiquidCrystal_I2C::begin(uint8_t cols, uint8_t lines, uint8_t dotsize) {
+            init();
+          }
+
+          void LiquidCrystal_I2C::clear() {
+            command(LCD_CLEARDISPLAY);
+            delayMicroseconds(2000);
+          }
+
+          void LiquidCrystal_I2C::home() {
+            command(LCD_RETURNHOME);
+            delayMicroseconds(2000);
+          }
+
+          void LiquidCrystal_I2C::setCursor(uint8_t col, uint8_t row) {
+            int row_offsets[] = { 0x00, 0x40, 0x14, 0x54 };
+            if (row > _rows) row = _rows - 1;
+            command(LCD_SETDDRAMADDR | (col + row_offsets[row]));
+          }
+
+          void LiquidCrystal_I2C::noDisplay() {
+            _displaycontrol &= ~LCD_DISPLAYON;
+            command(LCD_DISPLAYCONTROL | _displaycontrol);
+          }
+
+          void LiquidCrystal_I2C::display() {
+            _displaycontrol |= LCD_DISPLAYON;
+            command(LCD_DISPLAYCONTROL | _displaycontrol);
+          }
+
+          void LiquidCrystal_I2C::noCursor() {
+            _displaycontrol &= ~LCD_CURSORON;
+            command(LCD_DISPLAYCONTROL | _displaycontrol);
+          }
+
+          void LiquidCrystal_I2C::cursor() {
+            _displaycontrol |= LCD_CURSORON;
+            command(LCD_DISPLAYCONTROL | _displaycontrol);
+          }
+
+          void LiquidCrystal_I2C::noBlink() {
+            _displaycontrol &= ~LCD_BLINKON;
+            command(LCD_DISPLAYCONTROL | _displaycontrol);
+          }
+
+          void LiquidCrystal_I2C::blink() {
+            _displaycontrol |= LCD_BLINKON;
+            command(LCD_DISPLAYCONTROL | _displaycontrol);
+          }
+
+          void LiquidCrystal_I2C::scrollDisplayLeft(void) {
+            command(LCD_CURSORSHIFT | LCD_DISPLAYMOVE | LCD_MOVELEFT);
+          }
+
+          void LiquidCrystal_I2C::scrollDisplayRight(void) {
+            command(LCD_CURSORSHIFT | LCD_DISPLAYMOVE | LCD_MOVERIGHT);
+          }
+
+          void LiquidCrystal_I2C::leftToRight(void) {
+            _displaymode |= LCD_ENTRYLEFT;
+            command(LCD_ENTRYMODESET | _displaymode);
+          }
+
+          void LiquidCrystal_I2C::rightToLeft(void) {
+            _displaymode &= ~LCD_ENTRYLEFT;
+            command(LCD_ENTRYMODESET | _displaymode);
+          }
+
+          void LiquidCrystal_I2C::autoscroll(void) {
+            _displaymode |= LCD_ENTRYSHIFTINCREMENT;
+            command(LCD_ENTRYMODESET | _displaymode);
+          }
+
+          void LiquidCrystal_I2C::noAutoscroll(void) {
+            _displaymode &= ~LCD_ENTRYSHIFTINCREMENT;
+            command(LCD_ENTRYMODESET | _displaymode);
+          }
+
+          void LiquidCrystal_I2C::createChar(uint8_t location, uint8_t charmap[]) {
+            location &= 0x7;
+            command(LCD_SETCGRAMADDR | (location << 3));
+            for (int i = 0; i < 8; i++) {
+              write(charmap[i]);
+            }
+          }
+
+          void LiquidCrystal_I2C::noBacklight(void) {
+            _backlightval = LCD_NOBACKLIGHT;
+            expanderWrite(0);
+          }
+
+          void LiquidCrystal_I2C::backlight(void) {
+            _backlightval = LCD_BACKLIGHT;
+            expanderWrite(0);
+          }
+
+          void LiquidCrystal_I2C::command(uint8_t value) {
+            send(value, 0);
+          }
+
+          size_t LiquidCrystal_I2C::write(uint8_t value) {
+            send(value, Rs);
+            return 1;
+          }
+
+          void LiquidCrystal_I2C::send(uint8_t value, uint8_t mode) {
+            uint8_t highnib = value & 0xf0;
+            uint8_t lownib = (value << 4) & 0xf0;
+            write4bits((highnib) | mode);
+            write4bits((lownib) | mode);
+          }
+
+          void LiquidCrystal_I2C::write4bits(uint8_t value) {
+            expanderWrite(value);
+            pulseEnable(value);
