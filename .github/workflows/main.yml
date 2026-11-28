@@ -300,4 +300,12 @@ jobs:
           void LiquidCrystal_I2C::write4bits(uint8_t value) {
             expanderWrite(value);
             pulseEnable(value);
+
+      - name: Upload Firmware Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: yoRadio-ESP32-Firmware
+          path: |
+            yoRadio_merged.bin
+            ./build_out/*.ino.bin
             
