@@ -52,12 +52,9 @@ jobs:
           arduino-cli lib install "DallasTemperature"
           arduino-cli lib install "GyverButton"
           arduino-cli lib install "GyverEncoder"
-          mkdir -p ~/Arduino/libraries
-          PROTO="https"
-          HOST="github.com"
-          LIB_REPO="johnrickman/LiquidCrystal_I2C.git"
-          git clone "${PROTO}://${HOST}/${LIB_REPO}" ~/Arduino/libraries/LiquidCrystal_I2C
-          
+          mkdir -p ~/Arduino/libraries/LiquidCrystal_I2C
+          find . -name "LiquidCrystal_I2C.*" -exec cp {} ~/Arduino/libraries/LiquidCrystal_I2C/ \;
+          ls -la ~/Arduino/libraries/LiquidCrystal_I2C/
 
 
       - name: Copy custom font (if exists)
