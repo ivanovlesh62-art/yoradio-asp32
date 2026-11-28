@@ -1,16 +1,19 @@
 #ifndef myoptions_h
 #define myoptions_h
 
-/* --- Дисплей 20x2 (используем профиль 20 символов в ширину) --- */
-#define DSP_MODEL DSP_2004
+/* --- Дисплей 20x2 с I2C-адаптером PCF8574T --- */
+#define DSP_MODEL DSP_2002I2C
 #define LCD_I2C_ADDR 0x27
-#define LCD_I2C_SDA  21
-#define LCD_I2C_SCL  22
+#define I2C_SDA 21
+#define I2C_SCL 22
+// Если экран поддерживает кириллицу на уровне контроллера, можно раскомментировать:
+// #define LCD_RUS
 
-/* --- Аудио ЦАП I2S UDA1334A --- */
-#define I2S_DOUT 25
-#define I2S_BCLK 27
-#define I2S_LRC  26
+/* --- Аудио ЦАП I2S UDA1334A (стандартные пины yoRadio) --- */
+#define I2S_DOUT 27  // DIN
+#define I2S_BCLK 26  // BCLK
+#define I2S_LRC  25  // WSEL
+#define VS1053_CS 255
 
 /* --- Энкодер EC11 --- */
 #define ENC_BTNR 32
