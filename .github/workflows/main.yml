@@ -44,6 +44,8 @@ jobs:
           arduino-cli lib update-index
           arduino-cli lib install "Adafruit GFX Library"
           arduino-cli lib install "Adafruit BusIO"
+          arduino-cli lib install "LiquidCrystal"
+          arduino-cli lib install "LiquidCrystal I2C"
           arduino-cli lib install "AsyncTCP"
           arduino-cli lib install "ESP Async WebServer"
           arduino-cli lib install "ArduinoJson"
